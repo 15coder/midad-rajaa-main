@@ -1057,6 +1057,22 @@ body {
   margin-top: 20px;
 }
 
+.install-fallback {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 30%, transparent);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.8;
+  text-align: center;
+  background: color-mix(in srgb, var(--accent-blue) 8%, transparent);
+}
+
+.install-fallback strong {
+  color: var(--text-primary);
+}
+
 @media (max-width: 480px) {
   .install-direct,
   -ios {

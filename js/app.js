@@ -691,6 +691,11 @@ function applyServiceFilters() {
 /* ── PWA Install ─────────────────────────────────────── */
 let deferredPrompt = null;
 
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredPrompt = event;
+});
+
 function initInstallPage() {
   const installButton = document.getElementById('installPwaBtn');
   const directPanel = document.getElementById('installDirect');
@@ -718,19 +723,19 @@ function initInstallPage() {
     if (deviceNote) deviceNote.textContent = 'اضغط الزر لإظهار نافذة التثبيت الرسمية من المتصفح.';
   }
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
+  window.addEventListener('beforeinstallprompt', () => {
     installButton.disabled = false;
     if (fallback) fallback.hidden = true;
   });
 
+  installButton.disabled = false;
   installButton.addEventListener('click', async () => {
     vibrate([10, 20]);
     if (deferredPrompt) {
       await triggerInstallPrompt(installButton);
     } else if (fallback) {
       fallback.hidden = false;
+      fallback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   });
 
@@ -755,10 +760,14 @@ async function triggerInstallPrompt(installButton) {
     if (outcome === 'accepted') {
       vibrate([30, 50, 80]);
       installButton.disabled = true;
+    } else {
+      installButton.disabled = false;
     }
     deferredPrompt = null;
   } catch (err) {
     console.warn('Install prompt error:', err);
+    deferredPrompt = null;
+    installButton.disabled = false;
   }
 }
 

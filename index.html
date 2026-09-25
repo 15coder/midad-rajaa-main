@@ -758,13 +758,24 @@
 
     <p class="install-device-note" id="installDeviceNote"></p>
 
-    <!-- Install Button ONLY -->
-    <div class="install-btn-wrap">
+    <!-- Install Button -->
+    <section class="install-direct" id="installDirect" aria-labelledby="installDirectTitle">
+      <div class="install-panel-copy">
+        <span class="install-panel-label">Android و Chrome</span>
+        <h3 id="installDirectTitle">ثبّت التطبيق مباشرة</h3>
+        <p>سيظهر لك مربع التثبيت الرسمي من المتصفح عند الضغط على الزر.</p>
+      </div>
+      <div class="install-btn-wrap">
       <button class="btn-primary glow-blue" id="installPwaBtn" style="width:100%; justify-content:center; padding:20px; font-size:18px; font-weight:700; border-radius:20px;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         ثبّت التطبيق الآن
       </button>
-    </div>
+      </div>
+      <p class="install-fallback" id="installFallback" role="status" aria-live="polite" hidden>
+        لم تظهر نافذة التثبيت تلقائيًا. افتح قائمة المتصفح ثم اختر
+        <strong>تثبيت التطبيق</strong> أو <strong>إضافة إلى الشاشة الرئيسية</strong>.
+      </p>
+    </section>
 
   </div>
 </main>
