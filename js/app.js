@@ -7,7 +7,7 @@
 /* ── Telegram Config ─────────────────────────────────────── */
 const TG_USERNAME = 'Rv9_h';
 const THEME_PREFERENCE_KEY = 'mdad-theme';
-// Bot credentials stay server-side in the Netlify function:
+// Bot credentials stay server-side in the Replit server or Netlify function:
 // MDAD_BOT_TOKEN and MDAD_CHAT_ID.
 
 /* ── Service Worker Registration ─────────────────────────── */
@@ -293,8 +293,10 @@ function initOrderForm() {
 
       setOrderStatus(
         status,
-        'وصل الطلب إلى فريقنا. أكمل الإرسال في تيليجرام.',
-        openedTelegram ? '' : telegramUrl
+        'وصلت نسخة مطابقة إلى فريقنا. أرسل النسخة التي فُتحت في تيليجرام دون تعديلها لإكمال الطلب.',
+        openedTelegram ? '' : telegramUrl,
+        'success',
+        verificationCode
       );
 
       form.reset();
@@ -319,23 +321,48 @@ function initOrderForm() {
   });
 }
 
-function setOrderStatus(element, message, link = '', state = 'success') {
+function setOrderStatus(element, message, link = '', state = 'success', verificationCode = '') {
   if (!element) return;
   element.replaceChildren();
   element.hidden = !message;
   element.dataset.state = state;
   if (!message) return;
 
-  element.append(document.createTextNode(message));
+  const icon = document.createElement('span');
+  icon.className = 'order-status-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = state === 'error' ? '!' : '✓';
+
+  const content = document.createElement('div');
+  content.className = 'order-status-content';
+  const title = document.createElement('strong');
+  title.className = 'order-status-title';
+  title.textContent = state === 'error' ? 'تعذر إرسال الطلب' : 'تم استلام طلبك';
+  const description = document.createElement('p');
+  description.className = 'order-status-message';
+  description.textContent = message;
+  content.append(title, description);
+
+  if (verificationCode) {
+    const codeLine = document.createElement('p');
+    codeLine.className = 'order-status-code';
+    codeLine.append(document.createTextNode('رمز المطابقة: '));
+    const code = document.createElement('code');
+    code.textContent = verificationCode;
+    codeLine.append(code);
+    content.append(codeLine);
+  }
+
   if (link) {
-    element.append(document.createTextNode(' '));
     const anchor = document.createElement('a');
     anchor.href = link;
     anchor.target = '_blank';
     anchor.rel = 'noopener noreferrer';
-    anchor.textContent = 'اضغط هنا لفتح تيليجرام';
-    element.append(anchor);
+    anchor.className = 'order-status-link';
+    anchor.textContent = 'فتح تيليجرام لإكمال الإرسال';
+    content.append(anchor);
   }
+  element.append(icon, content);
 }
 
 function getOrderValues() {
@@ -494,7 +521,7 @@ async function sendToTelegramBot(orderData, verificationCode) {
       body: JSON.stringify({ ...orderData, verificationCode }),
     });
   } catch {
-    throw new Error('تعذر الاتصال بخدمة استقبال الطلبات. تأكد من نشر الموقع على Netlify ثم أعد المحاولة.');
+    throw new Error('تعذر الاتصال بخدمة استقبال الطلبات. أعد المحاولة بعد قليل.');
   }
 
   let result;

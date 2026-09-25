@@ -680,26 +680,94 @@ body {
 .btn-submit.loading .btn-text { display: none; }
 
 .order-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
   margin: 14px 0 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  line-height: 1.7;
+  padding: 16px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  background: rgba(48, 209, 88, 0.12);
-  border: 1px solid rgba(48, 209, 88, 0.28);
+  background: linear-gradient(135deg, rgba(48, 209, 88, 0.14), var(--glass-bg));
+  border: 1px solid rgba(48, 209, 88, 0.3);
+  box-shadow: var(--glass-shadow);
+  animation: orderStatusIn 0.35s var(--ease-spring) both;
 }
 
 .order-status[data-state="error"] {
-  background: rgba(255, 69, 58, 0.12);
+  background: linear-gradient(135deg, rgba(255, 69, 58, 0.14), var(--glass-bg));
   border-color: rgba(255, 69, 58, 0.3);
 }
 
-.order-status a {
+.order-status-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  background: #30a959;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.order-status[data-state="error"] .order-status-icon {
+  background: #e5484d;
+}
+
+.order-status-content {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.75;
+}
+
+.order-status-title {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 1rem;
+}
+
+.order-status-message,
+.order-status-code {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.order-status-code {
+  margin-top: 8px;
+  color: var(--text-primary);
+}
+
+.order-status-code code {
   display: inline-block;
+  direction: ltr;
   margin-inline-start: 4px;
-  color: var(--accent, #007aff);
+  padding: 2px 9px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--glass-bg);
+  color: var(--accent-blue);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.order-status-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent-blue);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.order-status-link:hover {
   text-decoration: underline;
+}
+
+@keyframes orderStatusIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes spin {
