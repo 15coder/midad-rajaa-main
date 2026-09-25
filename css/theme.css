@@ -87,15 +87,11 @@
   --shadow-sm: 0 4px 16px rgba(28, 47, 79, 0.06);
   --shadow-md: 0 8px 32px rgba(28, 47, 79, 0.09);
   --shadow-lg: 0 16px 48px rgba(28, 47, 79, 0.12);
-  --shadow-glow-blue: 0 0 36px rgba(9, 104, 216, 0.12);
-  --shadow-glow-purple: 0 0 36px rgba(150, 59, 196, 0.12);
 }
 
 body {
   transition: background-color 0.3s var(--ease-smooth), color 0.3s var(--ease-smooth);
 }
-
-:root[data-theme="light"] .bg-orbs { opacity: 0.55; }
 
 :root[data-theme="light"] .hero-logo {
   box-shadow: 0 12px 28px rgba(20, 24, 32, 0.22);
@@ -103,10 +99,6 @@ body {
 
 :root[data-theme="dark"] .hero-logo {
   box-shadow: 0 12px 30px rgba(0, 199, 190, 0.2);
-}
-
-:root[data-theme="light"] .light-rays-container {
-  background: radial-gradient(ellipse 44% 70% at 50% -8%, rgba(7, 89, 133, 0.12), transparent 72%);
 }
 
 :root[data-theme="light"] .glass-card {

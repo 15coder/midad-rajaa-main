@@ -2,14 +2,13 @@
 //  مداد — Service Worker (PWA Offline Support)
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'mdad-v1.0.5';
+const CACHE_NAME = 'mdad-v1.0.6';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './css/theme.css',
   './js/app.js',
-  './js/light-rays.js',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap'
 ];

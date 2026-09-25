@@ -6,7 +6,7 @@ import zlib
 import os
 import math
 
-ICONS_DIR = r"C:\Users\AMEER\.gemini\antigravity\scratch\mdad-store\icons"
+ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
 SIZES = [72, 96, 128, 144, 152, 192, 384, 512]
 
 def write_png(filename, width, height, pixels):
