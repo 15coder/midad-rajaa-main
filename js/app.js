@@ -286,12 +286,7 @@ function initOrderForm() {
         buildTelegramMessage(values, verificationCode)
       )}`;
       window.location.href = telegramUrl;
-    } catch (error) {
-      setOrderStatus(
-        status,
-        error.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.',
-        'error'
-      );
+    } catch {
     } finally {
       isSubmitting = false;
       btn?.classList.remove('loading');
