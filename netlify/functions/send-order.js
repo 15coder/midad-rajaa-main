@@ -149,6 +149,7 @@ exports.handler = async (event) => {
     console.error('Telegram order delivery is missing Netlify variables:', missing.join(', '));
     return jsonResponse(503, {
       success: false,
+      diagnosticCode: 'MISSING_TELEGRAM_ENV',
       message: 'استقبال الطلبات غير مهيأ حاليًا. حاول لاحقًا أو تواصل معنا مباشرة.',
     });
   }
@@ -171,14 +172,44 @@ exports.handler = async (event) => {
 
     const telegramData = await telegramResponse.json().catch(() => null);
     if (!telegramResponse.ok || telegramData?.ok !== true) {
+      const telegramErrorCode = telegramData?.error_code || telegramResponse.status;
+      const description = telegramData?.description || '';
+      const normalizedDescription = description.toLowerCase();
+      const suggestedChatId = telegramData?.parameters?.migrate_to_chat_id;
+      let diagnosticCode = `TELEGRAM_API_${telegramErrorCode}`;
+      let message = 'رفض تيليجرام تسجيل الطلب. راجع سجل الدالة في Netlify لمعرفة رمز التشخيص.';
+
+      if (telegramErrorCode === 401) {
+        diagnosticCode = 'TELEGRAM_TOKEN_REJECTED';
+        message = 'رفض تيليجرام رمز البوت. تحقق من TELEGRAM_BOT_TOKEN في Netlify، ثم أعد النشر.';
+      } else if (suggestedChatId) {
+        diagnosticCode = 'TELEGRAM_GROUP_MIGRATED';
+        message = 'تغيّر معرّف مجموعة الإدارة. حدّث TELEGRAM_CHAT_ID بالمعرّف الجديد الظاهر في سجل الدالة ثم أعد النشر.';
+      } else if (normalizedDescription.includes('chat not found')) {
+        diagnosticCode = 'TELEGRAM_CHAT_NOT_FOUND';
+        message = 'لم يجد تيليجرام مجموعة الإدارة. تحقق من TELEGRAM_CHAT_ID وأن البوت عضو في المجموعة.';
+      } else if (
+        telegramErrorCode === 403 ||
+        normalizedDescription.includes('not enough rights') ||
+        normalizedDescription.includes('bot was kicked')
+      ) {
+        diagnosticCode = 'TELEGRAM_BOT_FORBIDDEN';
+        message = 'البوت لا يملك صلاحية الإرسال إلى مجموعة الإدارة. أضفه للمجموعة واسمح له بإرسال الرسائل.';
+      } else if (telegramErrorCode === 429) {
+        diagnosticCode = 'TELEGRAM_RATE_LIMITED';
+        message = 'تيليجرام يحدّ من الطلبات مؤقتًا. انتظر قليلاً ثم أعد المحاولة.';
+      }
+
       console.error('Telegram rejected order delivery:', {
         httpStatus: telegramResponse.status,
-        errorCode: telegramData?.error_code || null,
-        description: telegramData?.description || 'unknown error',
+        errorCode: telegramErrorCode,
+        description: description || 'unknown error',
+        suggestedChatId: suggestedChatId || null,
       });
       return jsonResponse(502, {
         success: false,
-        message: 'تعذر تسجيل الطلب لدى الإدارة عبر تيليجرام. أعد المحاولة بعد قليل.',
+        diagnosticCode,
+        message,
       });
     }
 
@@ -190,6 +221,7 @@ exports.handler = async (event) => {
     console.error('Telegram order delivery failed:', error.name || 'Unknown error');
     return jsonResponse(502, {
       success: false,
+      diagnosticCode: 'TELEGRAM_CONNECTION_FAILED',
       message: 'تعذر الاتصال بتيليجرام لإرسال الطلب. أعد المحاولة بعد قليل.',
     });
   }
