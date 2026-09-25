@@ -748,6 +748,29 @@ body {
 .btn-submit.loading .spinner { display: block; }
 .btn-submit.loading .btn-text { display: none; }
 
+.order-status {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background: rgba(48, 209, 88, 0.12);
+  border: 1px solid rgba(48, 209, 88, 0.28);
+}
+
+.order-status[data-state="error"] {
+  background: rgba(255, 69, 58, 0.12);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+
+.order-status a {
+  display: inline-block;
+  margin-inline-start: 4px;
+  color: var(--accent, #007aff);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

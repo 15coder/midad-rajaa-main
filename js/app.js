@@ -6,11 +6,9 @@
 
 /* ── Telegram Config ─────────────────────────────────────── */
 const TG_USERNAME = 'Rv9_h';
-const TG_CHAT_LINK = `https://t.me/${TG_USERNAME}`;
 const THEME_PREFERENCE_KEY = 'mdad-theme';
-const TG_BOT_API = 'https://api.telegram.org/bot';
-// سيتم استخدام environment variables من Netlify:
-// TG_BOT_TOKEN و TG_CHAT_ID
+// Bot credentials stay server-side in the Netlify function:
+// MDAD_BOT_TOKEN and MDAD_CHAT_ID.
 
 /* ── Service Worker Registration ─────────────────────────── */
 if ('serviceWorker' in navigator) {
@@ -260,49 +258,84 @@ function initOrderForm() {
       return;
     }
 
-    if (!window.confirm('تم التحقق من بيانات الطلب. هل تريد فتح تيليجرام لإكمال الإرسال؟')) {
+    if (!window.confirm('سيتم إرسال نسخة من الطلب إلى فريقنا، ثم فتح رسالة جاهزة في تيليجرام لإكمال الإرسال. هل تريد المتابعة؟')) {
       return;
     }
 
+    const status = document.getElementById('orderStatus');
+    setOrderStatus(status, '', '');
+    // Open the tab during the user gesture so popup blockers don't discard it
+    // after the network request finishes.
+    const telegramTab = window.open('about:blank', '_blank');
+    if (telegramTab) telegramTab.opener = null;
+
     btn?.classList.add('loading');
     btn?.setAttribute('aria-busy', 'true');
+    if (clearButton) clearButton.disabled = true;
     vibrate([10, 50, 10]);
 
-    // توليد كود التحقق الفريد
     const verificationCode = generateVerificationCode();
-
-    // إرسال مخفي إلى البوت (للتحقق والأرشفة)
     try {
-      const botSent = await sendToTelegramBot(values, verificationCode);
-      if (botSent) {
-        console.log('✅ تم الإرسال إلى النظام بنجاح - كود التحقق:', verificationCode);
+      await sendToTelegramBot(values, verificationCode);
+
+      const telegramUrl = `https://t.me/${TG_USERNAME}?text=${encodeURIComponent(
+        buildTelegramMessage(values, verificationCode)
+      )}`;
+      let openedTelegram = false;
+      if (telegramTab && !telegramTab.closed) {
+        try {
+          telegramTab.location.replace(telegramUrl);
+          openedTelegram = true;
+        } catch {
+          telegramTab.close();
+        }
       }
-    } catch (error) {
-      console.warn('⚠️ خطأ في الإرسال إلى النظام:', error);
-    }
 
-    // Build Telegram message للمستخدم (مع كود المطابقة)
-    const msg = buildTelegramMessage(values, verificationCode);
+      setOrderStatus(
+        status,
+        'وصل الطلب إلى فريقنا. أكمل الإرسال في تيليجرام.',
+        openedTelegram ? '' : telegramUrl
+      );
 
-    // Open Telegram with pre-filled message
-    const encodedMsg = encodeURIComponent(msg);
-    const tgUrl = `https://t.me/${TG_USERNAME}?text=${encodedMsg}`;
-    window.open(tgUrl, '_blank', 'noopener');
-
-    await delay(250);
-    btn?.classList.remove('loading');
-    btn?.setAttribute('aria-busy', 'false');
-
-    vibrate([10, 30, 10, 30, 80]);
-
-    // Reset form after short delay
-    setTimeout(() => {
       form.reset();
       clearOrderTypes();
       updateOrderEstimate();
       localStorage.removeItem(ORDER_DRAFT_KEY);
-    }, 1500);
+      vibrate([10, 30, 10, 30, 80]);
+    } catch (error) {
+      if (telegramTab && !telegramTab.closed) telegramTab.close();
+      setOrderStatus(
+        status,
+        error.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.',
+        '',
+        'error'
+      );
+    } finally {
+      btn?.classList.remove('loading');
+      btn?.setAttribute('aria-busy', 'false');
+      if (clearButton) clearButton.disabled = false;
+    }
+
   });
+}
+
+function setOrderStatus(element, message, link = '', state = 'success') {
+  if (!element) return;
+  element.replaceChildren();
+  element.hidden = !message;
+  element.dataset.state = state;
+  if (!message) return;
+
+  element.append(document.createTextNode(message));
+  if (link) {
+    element.append(document.createTextNode(' '));
+    const anchor = document.createElement('a');
+    anchor.href = link;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.textContent = 'اضغط هنا لفتح تيليجرام';
+    element.append(anchor);
+  }
 }
 
 function getOrderValues() {
@@ -408,26 +441,26 @@ function updateOrderEstimate(type = getSelectedOrderType()) {
 
 function buildTelegramMessage({ name, phone, level, subject, orderType, deadline, notes }, verificationCode) {
   const lines = [
-    '📚 *طلب جديد من متجر مداد*',
+    '📚 طلب جديد من متجر مداد',
     '━━━━━━━━━━━━━━━━━━',
-    `🔐 *كود المطابقة:* \`${verificationCode}\``,
+    `🔐 كود المطابقة: ${verificationCode}`,
     '━━━━━━━━━━━━━━━━━━',
-    `👤 *الاسم:* ${name}`,
-    `📱 *الجوال:* ${phone}`,
-    `🎓 *المرحلة الدراسية:* ${level}`,
-    `📖 *المادة:* ${subject}`,
-    `📋 *نوع الطلب:* ${orderType}`,
-    `📅 *موعد التسليم:* ${deadline}`,
+    `👤 الاسم: ${name}`,
+    `📱 الجوال: ${phone}`,
+    `🎓 المرحلة الدراسية: ${level}`,
+    `📖 المادة: ${subject}`,
+    `📋 نوع الطلب: ${orderType}`,
+    `📅 موعد التسليم: ${deadline}`,
   ];
 
   if (notes) {
-    lines.push(`📝 *ملاحظات:* ${notes}`);
+    lines.push(`📝 ملاحظات: ${notes}`);
   }
 
   lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('_تم الإرسال من تطبيق مداد للمعرفة والتعلم_ 🌟');
+  lines.push('تم الإرسال من تطبيق مداد للمعرفة والتعلم 🌟');
   lines.push('');
-  lines.push('⚠️ *مهم:* احتفظ بكود المطابقة للتأكد من صحة الطلب');
+  lines.push('⚠️ مهم: احتفظ بكود المطابقة للتأكد من صحة الطلب');
 
   return lines.join('\n');
 }
@@ -436,40 +469,46 @@ function buildTelegramMessage({ name, phone, level, subject, orderType, deadline
 let selectedType = '';
 
 function generateVerificationCode() {
-  // توليد كود تحقق فريد (8 أحرف وأرقام عشوائية)
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  const randomBytes = new Uint8Array(16);
+
+  while (code.length < 8) {
+    crypto.getRandomValues(randomBytes);
+    for (const byte of randomBytes) {
+      const unbiasedLimit = Math.floor(256 / chars.length) * chars.length;
+      if (byte >= unbiasedLimit) continue;
+      code += chars[byte % chars.length];
+      if (code.length === 8) break;
+    }
   }
   return code;
 }
 
 async function sendToTelegramBot(orderData, verificationCode) {
+  let response;
   try {
-    // إرسال البيانات إلى Netlify Function
-    const response = await fetch('/.netlify/functions/send-to-bot', {
+    response = await fetch('/.netlify/functions/send-to-bot', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...orderData,
-        verificationCode: verificationCode
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...orderData, verificationCode }),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to send to bot');
-    }
-
-    const result = await response.json();
-    return result.success;
-
-  } catch (error) {
-    console.error('Telegram send error:', error);
-    return false;
+  } catch {
+    throw new Error('تعذر الاتصال بخدمة استقبال الطلبات. تأكد من نشر الموقع على Netlify ثم أعد المحاولة.');
   }
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('تعذر قراءة رد خادم الإرسال. أعد المحاولة.');
+  }
+
+  if (!response.ok || result.success !== true) {
+    throw new Error(result.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.');
+  }
+
+  return result;
 }
 
 function initTypeChips() {
