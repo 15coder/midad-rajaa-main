@@ -2,7 +2,7 @@
 //  مداد — Service Worker (PWA Offline Support)
 // ═══════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'mdad-v1.0.6';
+const CACHE_NAME = 'mdad-v1.0.7';
 const STATIC_ASSETS = [
   './',
   './index.html',

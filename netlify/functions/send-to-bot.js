@@ -141,7 +141,11 @@ exports.handler = async (event) => {
   const botToken = process.env.MDAD_BOT_TOKEN?.trim();
   const chatId = process.env.MDAD_CHAT_ID?.trim();
   if (!botToken || !chatId) {
-    console.error('Telegram order delivery is missing its Netlify environment configuration.');
+    const missing = [
+      !botToken && 'MDAD_BOT_TOKEN',
+      !chatId && 'MDAD_CHAT_ID',
+    ].filter(Boolean);
+    console.error('Telegram order delivery is missing Netlify variables:', missing.join(', '));
     return jsonResponse(503, {
       success: false,
       message: 'استقبال الطلبات غير مهيأ حاليًا. تواصل معنا مباشرة أو حاول لاحقًا.',
@@ -163,10 +167,31 @@ exports.handler = async (event) => {
 
     const telegramData = await telegramResponse.json().catch(() => null);
     if (!telegramResponse.ok || telegramData?.ok !== true) {
-      console.error('Telegram rejected order delivery:', telegramData?.description || telegramResponse.status);
+      const telegramDescription = telegramData?.description || 'unknown error';
+      console.error('Telegram rejected order delivery:', {
+        httpStatus: telegramResponse.status,
+        errorCode: telegramData?.error_code || null,
+        description: telegramDescription,
+        migrateToChatId: telegramData?.parameters?.migrate_to_chat_id || null,
+      });
+
+      let message = 'تعذر إرسال الطلب إلى تيليجرام. لم تُفتح رسالة المتابعة؛ أعد المحاولة.';
+      const normalizedDescription = String(telegramDescription).toLowerCase();
+      if (telegramResponse.status === 401) {
+        message = 'تعذر التحقق من بوت تيليجرام. يرجى المحاولة لاحقًا أو التواصل معنا.';
+      } else if (normalizedDescription.includes('chat not found')) {
+        message = 'تعذر الوصول إلى مجموعة تيليجرام لاستلام الطلب. يرجى التواصل معنا.';
+      } else if (
+        telegramResponse.status === 403 ||
+        normalizedDescription.includes('not enough rights') ||
+        normalizedDescription.includes('bot was kicked')
+      ) {
+        message = 'لا يملك البوت صلاحية إرسال الطلب إلى مجموعة تيليجرام. يرجى التواصل معنا.';
+      }
+
       return jsonResponse(502, {
         success: false,
-        message: 'تعذر إرسال الطلب إلى تيليجرام. لم تُفتح رسالة المتابعة؛ أعد المحاولة.',
+        message,
       });
     }
 
