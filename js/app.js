@@ -7,8 +7,8 @@
 /* ── Telegram Config ─────────────────────────────────────── */
 const TG_USERNAME = 'Rv9_h';
 const THEME_PREFERENCE_KEY = 'mdad-theme';
-// Bot credentials stay server-side in the Replit server or Netlify function:
-// MDAD_BOT_TOKEN and MDAD_CHAT_ID.
+// The bot token and administration chat ID stay server-side:
+// TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID.
 
 /* ── Service Worker Registration ─────────────────────────── */
 if ('serviceWorker' in navigator) {
@@ -258,10 +258,6 @@ function initOrderForm() {
       return;
     }
 
-    if (!window.confirm('سيتم إرسال نسخة من الطلب إلى فريقنا، ثم فتح رسالة جاهزة في تيليجرام لإكمال الإرسال. هل تريد المتابعة؟')) {
-      return;
-    }
-
     const status = document.getElementById('orderStatus');
     setOrderStatus(status, '', '');
     // Open the tab during the user gesture so popup blockers don't discard it
@@ -274,9 +270,9 @@ function initOrderForm() {
     if (clearButton) clearButton.disabled = true;
     vibrate([10, 50, 10]);
 
-    const verificationCode = generateVerificationCode();
     try {
-      await sendToTelegramBot(values, verificationCode);
+      const result = await sendOrderToTelegram(values);
+      const verificationCode = result.verificationCode;
 
       const telegramUrl = `https://t.me/${TG_USERNAME}?text=${encodeURIComponent(
         buildTelegramMessage(values, verificationCode)
@@ -467,58 +463,33 @@ function updateOrderEstimate(type = getSelectedOrderType()) {
 }
 
 function buildTelegramMessage({ name, phone, level, subject, orderType, deadline, notes }, verificationCode) {
-  const lines = [
+  return [
     '📚 طلب جديد من متجر مداد',
-    '━━━━━━━━━━━━━━━━━━',
+    '',
     `🔐 كود المطابقة: ${verificationCode}`,
-    '━━━━━━━━━━━━━━━━━━',
+    '',
     `👤 الاسم: ${name}`,
     `📱 الجوال: ${phone}`,
     `🎓 المرحلة الدراسية: ${level}`,
     `📖 المادة: ${subject}`,
     `📋 نوع الطلب: ${orderType}`,
     `📅 موعد التسليم: ${deadline}`,
-  ];
-
-  if (notes) {
-    lines.push(`📝 ملاحظات: ${notes}`);
-  }
-
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('تم الإرسال من تطبيق مداد للمعرفة والتعلم 🌟');
-  lines.push('');
-  lines.push('⚠️ مهم: احتفظ بكود المطابقة للتأكد من صحة الطلب');
-
-  return lines.join('\n');
+    `📝 ملاحظات: ${notes}`,
+    '',
+    'السلام عليكم ورحمة الله وبركاته، رَجــــاءً أكِّدوا استلام الطلب وزوّدونا ببيانات الدفع لنبدأ بالتنفيذ',
+  ].join('\n');
 }
 
 /* ── Order Type Selection ────────────────────────────────── */
 let selectedType = '';
 
-function generateVerificationCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  const randomBytes = new Uint8Array(16);
-
-  while (code.length < 8) {
-    crypto.getRandomValues(randomBytes);
-    for (const byte of randomBytes) {
-      const unbiasedLimit = Math.floor(256 / chars.length) * chars.length;
-      if (byte >= unbiasedLimit) continue;
-      code += chars[byte % chars.length];
-      if (code.length === 8) break;
-    }
-  }
-  return code;
-}
-
-async function sendToTelegramBot(orderData, verificationCode) {
+async function sendOrderToTelegram(orderData) {
   let response;
   try {
-    response = await fetch('/.netlify/functions/send-to-bot', {
+    response = await fetch('/.netlify/functions/send-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...orderData, verificationCode }),
+      body: JSON.stringify(orderData),
     });
   } catch {
     throw new Error('تعذر الاتصال بخدمة استقبال الطلبات. أعد المحاولة بعد قليل.');
@@ -531,7 +502,11 @@ async function sendToTelegramBot(orderData, verificationCode) {
     throw new Error('تعذر قراءة رد خادم الإرسال. أعد المحاولة.');
   }
 
-  if (!response.ok || result.success !== true) {
+  if (
+    !response.ok ||
+    result.success !== true ||
+    !/^#MD-\d{4}$/.test(result.verificationCode || '')
+  ) {
     throw new Error(result.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.');
   }
 

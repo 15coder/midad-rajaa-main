@@ -1,3 +1,5 @@
+const { randomInt } = require('node:crypto');
+
 const MAX_BODY_BYTES = 8192;
 const MAX_FIELD_LENGTHS = {
   name: 120,
@@ -8,6 +10,7 @@ const MAX_FIELD_LENGTHS = {
   deadline: 10,
   notes: 1000,
 };
+
 const ORDER_TYPES = new Set([
   'ملخص',
   'عرض بوربوينت',
@@ -32,22 +35,26 @@ function jsonResponse(statusCode, payload) {
   };
 }
 
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function getRequestBody(event) {
+  if (!event.body) return '';
+  return event.isBase64Encoded
+    ? Buffer.from(event.body, 'base64').toString('utf8')
+    : event.body;
+}
+
+function normalizeField(value) {
+  return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
 }
 
 function readAndValidateOrder(event) {
-  if (!event.body || Buffer.byteLength(event.body, 'utf8') > MAX_BODY_BYTES) {
+  const body = getRequestBody(event);
+  if (!body || Buffer.byteLength(body, 'utf8') > MAX_BODY_BYTES) {
     return { error: 'الطلب فارغ أو حجمه أكبر من المسموح.' };
   }
 
   let order;
   try {
-    order = JSON.parse(event.body);
+    order = JSON.parse(body);
   } catch {
     return { error: 'تعذر قراءة بيانات الطلب. أعد المحاولة.' };
   }
@@ -62,15 +69,11 @@ function readAndValidateOrder(event) {
     if (typeof value !== 'string') {
       return { error: 'بعض بيانات الطلب غير صالحة.' };
     }
-    normalized[field] = value.trim();
+
+    normalized[field] = normalizeField(value);
     if (normalized[field].length > maxLength) {
       return { error: 'أحد حقول الطلب أطول من المسموح.' };
     }
-  }
-
-  const verificationCode = order.verificationCode;
-  if (typeof verificationCode !== 'string' || !/^[A-Z0-9]{8}$/.test(verificationCode)) {
-    return { error: 'تعذر إنشاء رمز مطابقة صالح. أعد المحاولة.' };
   }
 
   if (
@@ -84,7 +87,7 @@ function readAndValidateOrder(event) {
     return { error: 'بيانات الطلب ناقصة أو غير صالحة. راجع الحقول وأعد المحاولة.' };
   }
 
-  return { order: { ...normalized, verificationCode } };
+  return { order: normalized };
 }
 
 function isValidDate(value) {
@@ -93,28 +96,26 @@ function isValidDate(value) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-function buildMessage(order) {
-  const date = new Date().toLocaleString('ar-SA', {
-    timeZone: 'Asia/Riyadh',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-  const lines = [
-    '📚 <b>طلب جديد من متجر مداد</b>',
-    '━━━━━━━━━━━━━━━━━━',
-    `🔐 <b>كود المطابقة:</b> <code>${order.verificationCode}</code>`,
-    `👤 <b>الاسم:</b> ${escapeHtml(order.name)}`,
-    `📱 <b>الجوال:</b> ${escapeHtml(order.phone)}`,
-    `🎓 <b>المرحلة:</b> ${escapeHtml(order.level)}`,
-    `📖 <b>المادة:</b> ${escapeHtml(order.subject)}`,
-    `📋 <b>نوع الطلب:</b> ${escapeHtml(order.orderType)}`,
-    `📅 <b>موعد التسليم:</b> ${escapeHtml(order.deadline)}`,
-  ];
+function generateVerificationCode() {
+  return `#MD-${randomInt(1000, 10000)}`;
+}
 
-  if (order.notes) lines.push(`📝 <b>ملاحظات:</b> ${escapeHtml(order.notes)}`);
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push(`⏰ <b>وقت الاستلام:</b> ${escapeHtml(date)}`);
-  return lines.join('\n');
+function buildOrderMessage(order, verificationCode) {
+  return [
+    '📚 طلب جديد من متجر مداد',
+    '',
+    `🔐 كود المطابقة: ${verificationCode}`,
+    '',
+    `👤 الاسم: ${order.name}`,
+    `📱 الجوال: ${order.phone}`,
+    `🎓 المرحلة الدراسية: ${order.level}`,
+    `📖 المادة: ${order.subject}`,
+    `📋 نوع الطلب: ${order.orderType}`,
+    `📅 موعد التسليم: ${order.deadline}`,
+    `📝 ملاحظات: ${order.notes}`,
+    '',
+    'السلام عليكم ورحمة الله وبركاته، رَجــــاءً أكِّدوا استلام الطلب وزوّدونا ببيانات الدفع لنبدأ بالتنفيذ',
+  ].join('\n');
 }
 
 exports.handler = async (event) => {
@@ -138,19 +139,22 @@ exports.handler = async (event) => {
     return jsonResponse(400, { success: false, message: error });
   }
 
-  const botToken = process.env.MDAD_BOT_TOKEN?.trim();
-  const chatId = process.env.MDAD_CHAT_ID?.trim();
+  const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
   if (!botToken || !chatId) {
     const missing = [
-      !botToken && 'MDAD_BOT_TOKEN',
-      !chatId && 'MDAD_CHAT_ID',
+      !botToken && 'TELEGRAM_BOT_TOKEN',
+      !chatId && 'TELEGRAM_CHAT_ID',
     ].filter(Boolean);
     console.error('Telegram order delivery is missing Netlify variables:', missing.join(', '));
     return jsonResponse(503, {
       success: false,
-      message: 'استقبال الطلبات غير مهيأ حاليًا. تواصل معنا مباشرة أو حاول لاحقًا.',
+      message: 'استقبال الطلبات غير مهيأ حاليًا. حاول لاحقًا أو تواصل معنا مباشرة.',
     });
   }
+
+  const verificationCode = generateVerificationCode();
+  const message = buildOrderMessage(order, verificationCode);
 
   try {
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -159,45 +163,28 @@ exports.handler = async (event) => {
       signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         chat_id: chatId,
-        text: buildMessage(order),
-        parse_mode: 'HTML',
+        text: message,
+        disable_web_page_preview: true,
         protect_content: true,
       }),
     });
 
     const telegramData = await telegramResponse.json().catch(() => null);
     if (!telegramResponse.ok || telegramData?.ok !== true) {
-      const telegramDescription = telegramData?.description || 'unknown error';
       console.error('Telegram rejected order delivery:', {
         httpStatus: telegramResponse.status,
         errorCode: telegramData?.error_code || null,
-        description: telegramDescription,
-        migrateToChatId: telegramData?.parameters?.migrate_to_chat_id || null,
+        description: telegramData?.description || 'unknown error',
       });
-
-      let message = 'تعذر إرسال الطلب إلى تيليجرام. لم تُفتح رسالة المتابعة؛ أعد المحاولة.';
-      const normalizedDescription = String(telegramDescription).toLowerCase();
-      if (telegramResponse.status === 401) {
-        message = 'تعذر التحقق من بوت تيليجرام. يرجى المحاولة لاحقًا أو التواصل معنا.';
-      } else if (normalizedDescription.includes('chat not found')) {
-        message = 'تعذر الوصول إلى مجموعة تيليجرام لاستلام الطلب. يرجى التواصل معنا.';
-      } else if (
-        telegramResponse.status === 403 ||
-        normalizedDescription.includes('not enough rights') ||
-        normalizedDescription.includes('bot was kicked')
-      ) {
-        message = 'لا يملك البوت صلاحية إرسال الطلب إلى مجموعة تيليجرام. يرجى التواصل معنا.';
-      }
-
       return jsonResponse(502, {
         success: false,
-        message,
+        message: 'تعذر تسجيل الطلب لدى الإدارة عبر تيليجرام. أعد المحاولة بعد قليل.',
       });
     }
 
     return jsonResponse(200, {
       success: true,
-      messageId: telegramData.result.message_id,
+      verificationCode,
     });
   } catch (error) {
     console.error('Telegram order delivery failed:', error.name || 'Unknown error');
