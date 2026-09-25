@@ -177,27 +177,22 @@ exports.handler = async (event) => {
       const normalizedDescription = description.toLowerCase();
       const suggestedChatId = telegramData?.parameters?.migrate_to_chat_id;
       let diagnosticCode = `TELEGRAM_API_${telegramErrorCode}`;
-      let message = 'رفض تيليجرام تسجيل الطلب. راجع سجل الدالة في Netlify لمعرفة رمز التشخيص.';
+      const message = 'تعذر إرسال طلبك الآن. يرجى المحاولة لاحقًا.';
 
       if (telegramErrorCode === 401) {
         diagnosticCode = 'TELEGRAM_TOKEN_REJECTED';
-        message = 'رفض تيليجرام رمز البوت. تحقق من TELEGRAM_BOT_TOKEN في Netlify، ثم أعد النشر.';
       } else if (suggestedChatId) {
         diagnosticCode = 'TELEGRAM_GROUP_MIGRATED';
-        message = 'تغيّر معرّف مجموعة الإدارة. حدّث TELEGRAM_CHAT_ID بالمعرّف الجديد الظاهر في سجل الدالة ثم أعد النشر.';
       } else if (normalizedDescription.includes('chat not found')) {
         diagnosticCode = 'TELEGRAM_CHAT_NOT_FOUND';
-        message = 'لم يجد تيليجرام مجموعة الإدارة. تحقق من TELEGRAM_CHAT_ID وأن البوت عضو في المجموعة.';
       } else if (
         telegramErrorCode === 403 ||
         normalizedDescription.includes('not enough rights') ||
         normalizedDescription.includes('bot was kicked')
       ) {
         diagnosticCode = 'TELEGRAM_BOT_FORBIDDEN';
-        message = 'البوت لا يملك صلاحية الإرسال إلى مجموعة الإدارة. أضفه للمجموعة واسمح له بإرسال الرسائل.';
       } else if (telegramErrorCode === 429) {
         diagnosticCode = 'TELEGRAM_RATE_LIMITED';
-        message = 'تيليجرام يحدّ من الطلبات مؤقتًا. انتظر قليلاً ثم أعد المحاولة.';
       }
 
       console.error('Telegram rejected order delivery:', {
