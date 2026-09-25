@@ -1,0 +1,30 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="faviconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#004499;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" fill="#F5F7FA" rx="60"/>
+
+  <!-- الكتاب المفتوح المبسط -->
+  <g transform="translate(128, 110)">
+    <!-- الصفحة اليسرى -->
+    <path d="M -50 -40 Q -60 -30 -60 0 L -60 50 Q -60 65 -45 70 L 0 70 L 0 -50 Q -25 -50 -50 -40 Z" fill="url(#faviconGrad)"/>
+
+    <!-- الصفحة اليمنى -->
+    <path d="M 50 -40 Q 60 -30 60 0 L 60 50 Q 60 65 45 70 L 0 70 L 0 -50 Q 25 -50 50 -40 Z" fill="#0052A3"/>
+
+    <!-- الصفحات الملونة -->
+    <path d="M -30 -55 L 10 -50 L 5 -45 L -25 -50 Z" fill="#E63946"/>
+    <path d="M 10 -55 L 40 -50 L 35 -45 L 5 -50 Z" fill="#F1F1F1"/>
+    <path d="M 40 -55 L 70 -50 L 65 -45 L 35 -50 Z" fill="#0066CC"/>
+
+    <!-- الخط الأوسط -->
+    <line x1="0" y1="-40" x2="0" y2="65" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+  </g>
+
+  <!-- نصف الدائرة السفلية -->
+  <circle cx="128" cy="200" r="50" fill="none" stroke="#1A1A2E" stroke-width="10"/>
+</svg>
