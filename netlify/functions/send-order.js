@@ -1,4 +1,4 @@
-const { randomInt } = require('node:crypto');
+const { randomBytes } = require('node:crypto');
 
 const MAX_BODY_BYTES = 8192;
 const MAX_FIELD_LENGTHS = {
@@ -97,7 +97,7 @@ function isValidDate(value) {
 }
 
 function generateVerificationCode() {
-  return `#MD-${randomInt(1000, 10000)}`;
+  return `#MD-${randomBytes(6).toString('hex').toUpperCase()}`;
 }
 
 function buildOrderMessage(order, verificationCode) {

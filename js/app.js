@@ -214,6 +214,7 @@ function initOrderForm() {
 
   const submitButton = document.getElementById('submitBtn');
   const clearButton = document.getElementById('clearOrderForm');
+  let isSubmitting = false;
 
   restoreOrderDraft(form);
   updateOrderEstimate();
@@ -245,7 +246,7 @@ function initOrderForm() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (submitButton?.classList.contains('loading')) return;
+    if (isSubmitting) return;
 
     const btn = submitButton;
     const values = getOrderValues();
@@ -259,65 +260,49 @@ function initOrderForm() {
     }
 
     const status = document.getElementById('orderStatus');
-    setOrderStatus(status, '', '');
-    // Open the tab during the user gesture so popup blockers don't discard it
-    // after the network request finishes.
-    const telegramTab = window.open('about:blank', '_blank');
-    if (telegramTab) telegramTab.opener = null;
+    setOrderStatus(status, '');
 
+    isSubmitting = true;
     btn?.classList.add('loading');
     btn?.setAttribute('aria-busy', 'true');
+    if (btn) btn.disabled = true;
     if (clearButton) clearButton.disabled = true;
     vibrate([10, 50, 10]);
 
     try {
-      const result = await sendOrderToTelegram(values);
+      const result = await registerOrder(values);
       const verificationCode = result.verificationCode;
+      form.reset();
+      clearOrderTypes();
+      updateOrderEstimate();
+      try {
+        localStorage.removeItem(ORDER_DRAFT_KEY);
+      } catch {
+        // The registered order is still valid when browser storage is unavailable.
+      }
+      vibrate([10, 30, 10, 30, 80]);
 
       const telegramUrl = `https://t.me/${TG_USERNAME}?text=${encodeURIComponent(
         buildTelegramMessage(values, verificationCode)
       )}`;
-      let openedTelegram = false;
-      if (telegramTab && !telegramTab.closed) {
-        try {
-          telegramTab.location.replace(telegramUrl);
-          openedTelegram = true;
-        } catch {
-          telegramTab.close();
-        }
-      }
-
-      setOrderStatus(
-        status,
-        'وصلت نسخة مطابقة إلى فريقنا. أرسل النسخة التي فُتحت في تيليجرام دون تعديلها لإكمال الطلب.',
-        openedTelegram ? '' : telegramUrl,
-        'success',
-        verificationCode
-      );
-
-      form.reset();
-      clearOrderTypes();
-      updateOrderEstimate();
-      localStorage.removeItem(ORDER_DRAFT_KEY);
-      vibrate([10, 30, 10, 30, 80]);
+      window.location.href = telegramUrl;
     } catch (error) {
-      if (telegramTab && !telegramTab.closed) telegramTab.close();
       setOrderStatus(
         status,
         error.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.',
-        '',
         'error'
       );
     } finally {
+      isSubmitting = false;
       btn?.classList.remove('loading');
       btn?.setAttribute('aria-busy', 'false');
+      if (btn) btn.disabled = false;
       if (clearButton) clearButton.disabled = false;
     }
-
   });
 }
 
-function setOrderStatus(element, message, link = '', state = 'success', verificationCode = '') {
+function setOrderStatus(element, message, state = 'error') {
   if (!element) return;
   element.replaceChildren();
   element.hidden = !message;
@@ -339,32 +324,13 @@ function setOrderStatus(element, message, link = '', state = 'success', verifica
   description.textContent = message;
   content.append(title, description);
 
-  if (verificationCode) {
-    const codeLine = document.createElement('p');
-    codeLine.className = 'order-status-code';
-    codeLine.append(document.createTextNode('رمز المطابقة: '));
-    const code = document.createElement('code');
-    code.textContent = verificationCode;
-    codeLine.append(code);
-    content.append(codeLine);
-  }
-
-  if (link) {
-    const anchor = document.createElement('a');
-    anchor.href = link;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    anchor.className = 'order-status-link';
-    anchor.textContent = 'فتح تيليجرام لإكمال الإرسال';
-    content.append(anchor);
-  }
   element.append(icon, content);
 }
 
 function getOrderValues() {
   return {
     name: document.getElementById('fname')?.value.trim() || '',
-    phone: document.getElementById('fphone')?.value.trim() || '',
+    phone: document.getElementById('fphone')?.value.replace(/\s/g, '') || '',
     level: document.getElementById('flevel')?.value || '',
     subject: document.getElementById('fsubject')?.value.trim() || '',
     orderType: getSelectedOrderType(),
@@ -483,7 +449,7 @@ function buildTelegramMessage({ name, phone, level, subject, orderType, deadline
 /* ── Order Type Selection ────────────────────────────────── */
 let selectedType = '';
 
-async function sendOrderToTelegram(orderData) {
+async function registerOrder(orderData) {
   let response;
   try {
     response = await fetch('/.netlify/functions/send-order', {
@@ -505,7 +471,7 @@ async function sendOrderToTelegram(orderData) {
   if (
     !response.ok ||
     result.success !== true ||
-    !/^#MD-\d{4}$/.test(result.verificationCode || '')
+    !/^#MD-[A-F0-9]{12}$/.test(result.verificationCode || '')
   ) {
     throw new Error(result.message || 'تعذر إرسال الطلب. بقيت بياناتك في النموذج؛ أعد المحاولة.');
   }
@@ -680,8 +646,12 @@ function initInstallPage() {
   const deviceNote = document.getElementById('installDeviceNote');
   if (!installButton || !directPanel || !iosPanel || !installedStatus) return;
 
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  const userAgent = navigator.userAgent;
+  const platform = navigator.userAgentData?.platform || navigator.platform || '';
+  const isIOS = /iPad|iPhone|iPod/i.test(userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(userAgent);
+  const isWindows = /Windows/i.test(userAgent) || /Win/i.test(platform);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
   if (isStandalone) {
@@ -695,7 +665,13 @@ function initInstallPage() {
     directPanel.hidden = false;
     iosPanel.hidden = true;
     installButton.hidden = false;
-    if (deviceNote) deviceNote.textContent = '';
+    if (deviceNote) {
+      deviceNote.textContent = isAndroid
+        ? 'على Android، سيظهر تأكيد التثبيت الأصلي من المتصفح عند الضغط.'
+        : isWindows
+          ? 'على Windows، سيظهر تأكيد التثبيت الأصلي من Chrome أو Edge عند الضغط.'
+          : 'يتطلب التثبيت المباشر متصفحًا يدعم تطبيقات الويب التقدمية.';
+    }
   }
 
   window.addEventListener('beforeinstallprompt', () => {
@@ -728,20 +704,21 @@ function showInstalledState({ directPanel, iosPanel, installedStatus, installBut
 }
 
 async function triggerInstallPrompt(installButton) {
-  if (!deferredPrompt) return;
+  const promptEvent = deferredPrompt;
+  if (!promptEvent) return;
+
+  deferredPrompt = null;
+  installButton.disabled = true;
   try {
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
     if (outcome === 'accepted') {
       vibrate([30, 50, 80]);
-      installButton.disabled = true;
     } else {
       installButton.disabled = false;
     }
-    deferredPrompt = null;
   } catch (err) {
     console.warn('Install prompt error:', err);
-    deferredPrompt = null;
     installButton.disabled = false;
   }
 }

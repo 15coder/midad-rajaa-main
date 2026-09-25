@@ -722,7 +722,8 @@
 ════════════════════════════════════════════════════════ -->
 <main id="page-install" class="page">
   <div class="install-page">
-    <h2 class="section-title" style="margin-top:12px;">ثبّت مداد على جهازك</h2>
+    <h2 class="section-title">ثبّت مداد على جهازك</h2>
+    <p class="install-intro">افتح خدماتك المفضلة مباشرة من الشاشة الرئيسية.</p>
 
     <!-- Phone Mockup -->
     <div class="install-phone-mock" aria-hidden="true">
@@ -759,15 +760,15 @@
     <p class="install-device-note" id="installDeviceNote"></p>
 
     <!-- Install Button -->
-    <section class="install-direct" id="installDirect">
+    <section class="install-direct glass-card" id="installDirect" aria-label="تثبيت التطبيق">
       <div class="install-btn-wrap">
-        <button class="btn-primary glow-blue" id="installPwaBtn" style="width:100%; justify-content:center; padding:20px; font-size:18px; font-weight:700; border-radius:20px;">
+        <button class="btn-primary glow-blue install-cta" id="installPwaBtn" type="button">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           ثبّت التطبيق الآن
         </button>
       </div>
       <p class="install-fallback" id="installFallback" role="status" aria-live="polite" hidden>
-        لم تظهر نافذة التثبيت تلقائيًا. افتح قائمة المتصفح ثم اختر
+        تعذر فتح نافذة التثبيت. افتح قائمة المتصفح ثم اختر
         <strong>تثبيت التطبيق</strong> أو <strong>إضافة إلى الشاشة الرئيسية</strong>.
       </p>
     </section>
@@ -822,15 +823,6 @@
   <source src="./welcom.mp3" type="audio/mpeg" />
 </audio>
 <script src="./js/app.js"></script>
-
-<!-- Extra script for filter function -->
-<script>
-  function filterCategory(cat) {
-    setTimeout(() => {
-      if (typeof setServiceCategory === 'function') setServiceCategory(cat);
-    }, 100);
-  }
-</script>
 
 </body>
 </html>
