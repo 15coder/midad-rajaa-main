@@ -695,7 +695,7 @@ function initInstallPage() {
     directPanel.hidden = false;
     iosPanel.hidden = true;
     installButton.hidden = false;
-    if (deviceNote) deviceNote.textContent = 'اضغط الزر لإظهار نافذة التثبيت الرسمية من المتصفح.';
+    if (deviceNote) deviceNote.textContent = '';
   }
 
   window.addEventListener('beforeinstallprompt', () => {
