@@ -2,16 +2,17 @@
 .theme-toggle {
   position: fixed;
   top: max(16px, env(safe-area-inset-top));
-  right: max(16px, env(safe-area-inset-right));
+  left: max(16px, env(safe-area-inset-left));
   z-index: 950;
-  display: inline-flex;
-  min-height: 46px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 0 16px;
+  padding: 0;
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-full);
+  border-radius: 50%;
   background: var(--glass-white);
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
@@ -42,6 +43,18 @@
   width: 18px;
   height: 18px;
   flex: 0 0 18px;
+}
+
+.theme-toggle-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .theme-icon-sun,
@@ -84,6 +97,18 @@ body {
 
 :root[data-theme="light"] .bg-orbs { opacity: 0.55; }
 
+:root[data-theme="light"] .hero-logo {
+  box-shadow: 0 12px 28px rgba(20, 24, 32, 0.22);
+}
+
+:root[data-theme="dark"] .hero-logo {
+  box-shadow: 0 12px 30px rgba(0, 199, 190, 0.2);
+}
+
+:root[data-theme="light"] .light-rays-container {
+  background: radial-gradient(ellipse 44% 70% at 50% -8%, rgba(7, 89, 133, 0.12), transparent 72%);
+}
+
 :root[data-theme="light"] .glass-card {
   background: #fff;
   backdrop-filter: none;
@@ -113,6 +138,11 @@ body {
 :root[data-theme="light"] .glass-card:hover {
   border-color: rgba(9, 104, 216, 0.24);
   box-shadow: var(--shadow-lg), 0 0 36px rgba(9, 104, 216, 0.07);
+}
+
+:root[data-theme="light"] .developer-card:hover {
+  border-color: rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .hero-badge {

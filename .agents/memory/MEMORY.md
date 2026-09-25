@@ -1,1 +1,0 @@
-- [Layering imported themes](theme-layering.md) — keep new color modes isolated from legacy styling to reduce regressions.

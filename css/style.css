@@ -7,8 +7,8 @@
 /* â”€â”€ CSS Variables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
   /* iOS 27 Palette â€” Liquid Glass */
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #0f0f1a;
+  --bg-primary: #15171c;
+  --bg-secondary: #1c1f27;
   --glass-white: rgba(255, 255, 255, 0.06);
   --glass-border: rgba(255, 255, 255, 0.12);
   --glass-shine: rgba(255, 255, 255, 0.18);
@@ -83,11 +83,30 @@ body {
 
 /* â”€â”€ Animated Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .bg-orbs {
+  display: none;
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+.light-rays-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  background: radial-gradient(ellipse 44% 70% at 50% -8%, rgba(0, 255, 255, 0.16), transparent 72%);
+}
+
+.light-rays-container canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .orb {
@@ -241,31 +260,25 @@ body {
 .hero-logo-wrap {
   position: relative;
   margin-bottom: 32px;
-  animation: heroLogoFloat 6s ease-in-out infinite;
-}
-
-@keyframes heroLogoFloat {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(2deg); }
 }
 
 .hero-logo {
-  width: 200px;
-  height: 200px;
+  width: 190px;
+  height: 190px;
   border-radius: 36px;
   object-fit: contain;
   position: relative;
   z-index: 1;
-  box-shadow: 0 20px 60px rgba(0, 199, 190, 0.4), var(--shadow-lg);
+  box-shadow: none;
 }
 
 .about-logo {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   border-radius: 28px;
   object-fit: contain;
   margin-bottom: 16px;
-  box-shadow: 0 12px 40px rgba(0, 199, 190, 0.3);
+  box-shadow: none;
 }
 
 .hero-badge {
@@ -683,7 +696,7 @@ body {
 .btn-submit {
   width: 100%;
   padding: 18px;
-  background: var(--grad-accent);
+  background: var(--accent-blue);
   border: none;
   border-radius: var(--radius-md);
   font-size: 17px;
@@ -898,11 +911,7 @@ body {
 .phone-app-icon {
   width: 60px; height: 60px;
   border-radius: 14px;
-  background: var(--grad-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
+  object-fit: cover;
   box-shadow: 0 8px 20px rgba(0,122,255,0.4);
 }
 
@@ -1391,25 +1400,93 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  padding: 12px;
-  background: rgba(255,255,255,0.04);
-  border: none;
-  border-top: 1px solid var(--glass-border);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  width: fit-content;
+  min-width: 150px;
+  margin: 16px auto 0;
+  padding: 10px 18px;
+  background: rgba(0,122,255,0.08);
+  border: 1px solid rgba(0,122,255,0.3);
+  border-radius: var(--radius-full);
   color: var(--accent-blue);
   font-size: 13px;
   font-weight: 600;
   font-family: var(--font);
   cursor: pointer;
   transition: all 0.3s var(--ease-ios);
-  margin-top: 16px;
 }
 
-.expand-btn:hover { background: rgba(0,122,255,0.08); }
+.expand-btn:hover {
+  background: rgba(0,122,255,0.16);
+  border-color: rgba(0,122,255,0.5);
+}
 
 .expand-icon {
   transition: transform 0.3s var(--ease-ios);
+}
+
+.service-details-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.service-details-modal[hidden] {
+  display: none;
+}
+
+.service-details-dialog {
+  width: min(100%, 560px);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.service-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.service-details-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.service-details-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.service-details-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.service-details-content .service-card-expandable {
+  max-height: none;
+  overflow: visible;
+}
+
+body.modal-open {
+  overflow: hidden;
 }
 
 .open + .expand-btn .expand-icon,
@@ -1504,6 +1581,96 @@ body {
   padding: 40px;
   text-align: center;
   margin-bottom: 24px;
+}
+
+.about-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.about-features .glass-card:last-child {
+  grid-column: 1 / -1;
+}
+
+.developer-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 112px;
+  padding: 22px 24px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(110deg, rgba(0, 122, 255, 0.18), rgba(0, 199, 190, 0.07));
+  border-color: rgba(0, 199, 190, 0.28);
+  text-align: right;
+}
+
+.developer-card-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border: 1px solid #000 !important;
+  border-radius: 18px;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #fff;
+  font-size: 25px;
+}
+
+.developer-card-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.developer-card-credit {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.developer-card-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--accent-teal);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.developer-card h3 {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.developer-card p {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.developer-card-arrow {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: var(--accent-teal);
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.developer-card:hover {
+  border-color: rgba(0, 0, 0, 0.35);
+  box-shadow: none;
+}
+
+.developer-card:hover .developer-card-arrow {
+  transform: translate(-3px, -3px);
 }
 
 .about-logo {

@@ -108,6 +108,22 @@ function initTheme() {
 }
 
 /* ── Navigation ──────────────────────────────────────────── */
+let aboutWelcomePlayed = false;
+
+function playAboutWelcome() {
+  if (aboutWelcomePlayed) return;
+
+  const welcomeAudio = document.getElementById('welcomeAudio');
+  if (!welcomeAudio) return;
+
+  welcomeAudio.currentTime = 0;
+  welcomeAudio.play()
+    .then(() => {
+      aboutWelcomePlayed = true;
+    })
+    .catch(() => {});
+}
+
 function initNavigation() {
   const navItems = document.querySelectorAll('.nav-item');
   const pages = document.querySelectorAll('.page');
@@ -115,6 +131,8 @@ function initNavigation() {
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const target = item.dataset.page;
+
+      if (target === 'about') playAboutWelcome();
       
       // Haptic feedback simulation
       vibrate(10);
@@ -145,6 +163,7 @@ function navigateTo(pageId) {
   });
   
   pages.forEach(p => p.classList.remove('active'));
+  if (pageId === 'about') playAboutWelcome();
   const targetPage = document.getElementById(`page-${pageId}`);
   if (targetPage) {
     targetPage.classList.add('active');
@@ -484,17 +503,50 @@ function clearOrderTypes() {
 
 /* ── Expandable Service Cards ────────────────────────────── */
 function initExpandableCards() {
+  const modal = document.getElementById('serviceDetailsModal');
+  const modalTitle = document.getElementById('serviceDetailsTitle');
+  const modalContent = document.getElementById('serviceDetailsContent');
+  const closeButton = document.getElementById('closeServiceDetails');
+  let activeButton = null;
+
+  if (!modal || !modalTitle || !modalContent || !closeButton) return;
+
+  const closeDetails = () => {
+    modal.classList.remove('is-open');
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+    activeButton?.setAttribute('aria-expanded', 'false');
+    activeButton?.focus();
+    activeButton = null;
+  };
+
   document.querySelectorAll('.expand-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const card = btn.previousElementSibling;
-      const isOpen = card.classList.contains('open');
-      
-      card.classList.toggle('open');
-      btn.querySelector('.expand-icon').style.transform = isOpen ? '' : 'rotate(180deg)';
-      btn.querySelector('.expand-label').textContent = isOpen ? 'عرض التفاصيل' : 'إخفاء التفاصيل';
+      const card = btn.closest('.service-card');
+      const details = btn.previousElementSibling;
+      const title = card?.querySelector('.service-card-title')?.textContent.trim();
+      if (!card || !details || !title) return;
+
+      modalTitle.textContent = title;
+      modalContent.innerHTML = details.innerHTML;
+      modal.hidden = false;
+      modal.classList.add('is-open');
+      document.body.classList.add('modal-open');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-controls', 'serviceDetailsModal');
+      activeButton = btn;
+      closeButton.focus();
       
       vibrate(8);
     });
+  });
+
+  closeButton.addEventListener('click', closeDetails);
+  modal.addEventListener('click', event => {
+    if (event.target === modal) closeDetails();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !modal.hidden) closeDetails();
   });
 }
 
